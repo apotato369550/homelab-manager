@@ -694,23 +694,20 @@ view_live_stats() {
         return
     fi
 
-    # Create new session with local node running htop
-    tmux new-session -d -s homelab-live-stats "htop"
+    # Create new session with local node running htop in first window
+    tmux new-session -d -s homelab-live-stats -n "local" "htop"
 
-    # Add panes for each remote node
+    # Add a window for each remote node
     if [ -s "$NODES_FILE" ]; then
         mapfile -t nodes < "$NODES_FILE"
         for node_line in "${nodes[@]}"; do
             node_name="${node_line%|*}"
             ssh_addr="${node_line#*|}"
 
-            # Split window vertically and run SSH with proper TTY allocation (-t flag)
+            # Create new window for each remote node with proper TTY allocation (-t flag)
             # The -t flag forces pseudo-terminal allocation for interactive commands like htop
-            tmux split-window -t homelab-live-stats -v "ssh -o ConnectTimeout=10 -t -i \"$KEYS_DIR/id_rsa\" \"$ssh_addr\" 'htop'"
+            tmux new-window -t homelab-live-stats -n "$node_name" "ssh -o ConnectTimeout=10 -t -i \"$KEYS_DIR/id_rsa\" \"$ssh_addr\" 'htop'"
         done
-
-        # Arrange panes in a tiled layout for optimal viewing
-        tmux select-layout -t homelab-live-stats tiled
     fi
 
     # Attach to the session
